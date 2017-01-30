@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8">
+	<script src="static\jquery-1.12.2.min.js"></script>
+	<script src="static\bootstrap.min.js"></script>
+	<script type="text/javascript">
+		$(function () {
+			var conn, msg;
+			var minZoomLevel = $("#minZoomLevel");
+			var maxZoomLevel = $("#maxZoomLevel");
+			var log = $("#log");
+
+			function SerializeObject() {
+				var inputs = $("#form").find("input,textarea,select");
+				var o = {};
+				$.each(inputs, function (i, n) {
+					if (n.name != "")
+						switch (n.nodeName.toUpperCase()) {
+							case "INPUT":
+								if ($(n).is(":checkbox")) {
+									if ($(n).is(":checked")) {
+										if (o[n.name] == null) {
+											o[n.name] = "";
+										}
+										if (o[n.name] != "") {
+											o[n.name] += ",";
+										}
+										o[n.name] += n.value;
+									}
+								} else if ($(n).is(":radio")) {
+									if ($(n).is(":checked")) {
+										o[n.name] = n.value;
+									}
+								} else if ($(n).is(":text")) {
+									o[n.name] = n.value;
+								}
+								break;
+							case "TEXTAREA":
+								o[n.name] = $(n).text();
+								break;
+							case "SELECT":
+								o[n.name] = n.value;
+								break;
+						}
+				});
+				return JSON.stringify(o);
+				//return o;
+			}
+
+			function appendLog(msg) {
+				var d = log[0]
+				var doScroll = d.scrollTop == d.scrollHeight - d.clientHeight;
+				msg.appendTo(log)
+				if (doScroll) {
+					d.scrollTop = d.scrollHeight - d.clientHeight;
+				}
+			}
+			$("#form").submit(function () {
+				if (!conn) {
+					return false;
+				}
+				var jstring = SerializeObject();
+
+				if (jstring == "") {
+					return false;
+				}
+				conn.send(jstring);
+				return false
+			});
+
+			if (window["WebSocket"]) {
+				conn = new WebSocket("ws://{{$}}/ws");
+				conn.onclose = function (evt) {
+					appendLog($("<div><b>Connection closed.</b></div>"))
+				}
+				conn.onmessage = function (evt) {
+					appendLog($("<div/>").text(evt.data))
+				}
+			} else {
+				appendLog($("<div><b>Your browser does not support WebSockets.</b></div>"))
+			}
+		});
+		// $("document").ready(function() {
+		// });
+	</script>
+	<!--<link href="css/font.css" rel="stylesheet" type="text/css" />-->
+	<link rel="stylesheet" href="static\home.css">
+</head>
+
+<body>
+	<form id="form">
+		<br />
+		<br />
+		<label>最小层级：<input type="text" id="minZoomLevel" name="MinZoomLevel" value="3" size="10"/> 最小值：3</label>
+		<br />
+		<label>最大层级：<input type="text" id="maxZoomLevel" name="MaxZoomLevel" value="19" size="10"/> 最大值：19</label>
+		<br />
+		<br />
+		<br />
+		<label>要下载的区域</label>
+		<!--<input type="button" id="btn1" value="全选">
+		<input type="button" id="btn2" value="取消全选">
+		<input type="button" id="btn3" value="选中所有奇数">
+		<input type="button" id="btn4" value="反选">
+		<input type="button" id="btn5" value="获得选中的所有值">-->
+		<br />
+		<label><input name="Province" type="checkbox" value="北京" checked/>北京 </label>
+		<label><input name="Province" type="checkbox" value="天津"/>天津 </label>
+		<label><input name="Province" type="checkbox" value="上海"/>上海 </label>
+		<label><input name="Province" type="checkbox" value="重庆"/>重庆 </label>
+		<br />
+		<label><input name="Province" type="checkbox" value="四川"/>四川 </label>
+		<label><input name="Province" type="checkbox" value="云南"/>云南 </label>
+		<label><input name="Province" type="checkbox" value="贵州"/>贵州 </label>
+		<label><input name="Province" type="checkbox" value="广西"/>广西 </label>
+		<br />
+		<label><input name="Province" type="checkbox" value="广东"/>广东 </label>
+		<label><input name="Province" type="checkbox" value="安徽"/>安徽 </label>
+		<label><input name="Province" type="checkbox" value="西藏"/>西藏 </label>
+		<label><input name="Province" type="checkbox" value="福建"/>福建 </label>
+		<br />
+		<label><input name="Province" type="checkbox" value="江西"/>江西 </label>
+		<label><input name="Province" type="checkbox" value="陕西"/>陕西 </label>
+		<label><input name="Province" type="checkbox" value="江苏"/>江苏 </label>
+		<label><input name="Province" type="checkbox" value="河北"/>河北 </label>
+		<br />
+		<label><input name="Province" type="checkbox" value="全国"/>全国 </label>
+		<br />
+		<br />
+		<label><input name="Province" type="checkbox" value="广西防城港"/>广西防城港 </label>
+		<br />
+		<br /> 下侧复选框无效
+		<br />
+		<label><input name="Province" type="checkbox" value="黑龙江"/>黑龙江 </label>
+		<label><input name="Province" type="checkbox" value="吉林"/>吉林 </label>
+		<label><input name="Province" type="checkbox" value="辽宁"/>辽宁 </label>
+		<br />
+		<label><input name="Province" type="checkbox" value="河南"/>河南 </label>
+		<label><input name="Province" type="checkbox" value="山东"/>山东 </label>
+		<label><input name="Province" type="checkbox" value="山西"/>山西 </label>
+		<br /> ▪ 浙江  ▪ 湖南 ▪ 湖北 ▪ 新疆  ▪ 台湾 ▪ 宁夏 ▪ 内蒙古 ▪ 海南 ▪ 青海 ▪ 甘肃 ▪ 香港 ▪ 澳门
+		<br />
+		<input type="submit" value="Send" />
+	</form>
+	<div id="log"></div>
+</body>
+
+</html>
