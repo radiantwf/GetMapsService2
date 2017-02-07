@@ -83,7 +83,7 @@ func (service *GetMapsService) GetDownloadAreas(message []byte) (areas models.Ar
 func (service *GetMapsService) doGet(message []byte) {
 	service.downloading = true
 	areas := service.GetDownloadAreas(message)
-	service.Download.OnTileDownloaded = service.Save.UploadATile
-	service.Download.DownLoad(areas)
+	service.Download.Baidu.OnBaiduTileDownloaded = service.Save.Baidu.UploadATile
+	service.Download.Baidu.DownLoadMaps(areas)
 	service.downloading = false
 }

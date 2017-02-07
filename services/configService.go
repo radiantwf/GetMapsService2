@@ -29,6 +29,7 @@ type ConfigJSONStruct struct {
 	Port                int
 	AllowedThreadCount  int
 	BaiduMapServer      BaiduMapServerJSONStruct
+	BaiduMapFileSystem  BaiduMapFileSystemStruct
 	ProvinceInformation []map[string]interface{}
 }
 
@@ -37,6 +38,11 @@ type BaiduMapServerStruct struct {
 	MinServerNo int
 	MaxServerNo int
 	URL         string
+}
+
+// BaiduMapFileSystemStruct 定义
+type BaiduMapFileSystemStruct struct {
+	URL string
 }
 
 // ConfigStruct 定义
@@ -48,6 +54,7 @@ type ConfigStruct struct {
 	Port                int
 	AllowedThreadCount  int
 	BaiduMapServer      BaiduMapServerStruct
+	BaiduMapFileSystem  BaiduMapFileSystemStruct
 	ProvinceInformation []ProvinceInfoStruct
 }
 

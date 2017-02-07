@@ -10,6 +10,9 @@
         "MaxServerNo": 3,
         "URL":"http://online%d.map.bdimg.com/onlinelabel/?qt=tile&x=%d&y=%d&z=%d&styles=pl&scaler=1&udt=%s"
     },
+    "BaiduMapFileSystem": {
+        "URL":"http://127.0.0.1:8889/%d/%d/%d.png"
+    },
     "ProvinceInformation": [{
             "province": "北京",
             "area": {
