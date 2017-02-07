@@ -23,7 +23,12 @@ type BaiduMapSaveService struct {
 // UploadATile 定义
 func (baidu *BaiduMapSaveService) UploadATile(tile []byte, x, y int64, z int) (err error) {
 	url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapFileSystem.URL, z, x, y)
-	err = baidu.postTileToURL(url, tile)
+	for {
+		err = baidu.postTileToURL(url, tile)
+		if err == nil {
+			break
+		}
+	}
 	return
 }
 
@@ -43,11 +48,11 @@ func (baidu *BaiduMapSaveService) postTileToURL(url string, tile []byte) (err er
 	}
 
 	resp, err1 := http.Post(url, contentType, buf)
-	defer resp.Body.Close()
 	if err1 != nil {
 		err = err1
 		return
 	}
+	defer resp.Body.Close()
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return
