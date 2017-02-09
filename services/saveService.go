@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"time"
 )
 
 // SaveService 定义
@@ -28,6 +29,7 @@ func (baidu *BaiduMapSaveService) UploadATile(tile []byte, x, y int64, z int) (e
 		if err == nil {
 			break
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	return
 }

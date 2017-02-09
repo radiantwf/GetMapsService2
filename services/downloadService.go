@@ -114,6 +114,7 @@ func (baidu *BaiduMapDownloadService) downloadAtile(serverID int, xCounter, yCou
 		if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
 			serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	atomic.AddUint64(&counter, 1)
 	<-baidu.channel
