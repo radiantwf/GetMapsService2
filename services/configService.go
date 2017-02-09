@@ -28,6 +28,7 @@ type ConfigJSONStruct struct {
 	StaticPath          string
 	Port                int
 	AllowedThreadCount  int
+	ProcessListCapacity int
 	BaiduMapServer      BaiduMapServerJSONStruct
 	BaiduMapFileSystem  BaiduMapFileSystemStruct
 	ProvinceInformation []map[string]interface{}
@@ -53,6 +54,7 @@ type ConfigStruct struct {
 	StaticPath          string
 	Port                int
 	AllowedThreadCount  int
+	ProcessListCapacity int
 	BaiduMapServer      BaiduMapServerStruct
 	BaiduMapFileSystem  BaiduMapFileSystemStruct
 	ProvinceInformation []ProvinceInfoStruct

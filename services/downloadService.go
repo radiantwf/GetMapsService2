@@ -20,6 +20,12 @@ var totalCount uint64
 
 var aliveThreadCounter int64
 
+// BaiduProperties 定义
+type BaiduProperties struct {
+	zoomLevel int
+	x, y      int64
+}
+
 // DownloadService 定义
 type DownloadService struct {
 	Config *ConfigService           `inject:""`
@@ -39,13 +45,70 @@ type BaiduMapDownloadService struct {
 
 // DownLoadMaps 定义
 func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
+	baidu.initDownload()
+	downloadFlag = true
+	baidu.computeCounter(areas)
+	msg := fmt.Sprintf("下载开始，共计%d个文件需要下载。", totalCount)
+	baidu.WebSocket.BroadcastMessage(msg)
+
+	go baidu.putProcessingMessage()
+
+	udt := time.Now().Format("20060102")
+	mapBaiduPropertiesList := make([]*BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+	for zoomCounter := areas.MinZoomLevel; zoomCounter <= areas.MaxZoomLevel; zoomCounter++ {
+		cV := math.Pow(float64(2), float64(18-zoomCounter))
+		unitSize := cV * 256
+		for _, areaRect := range areas.Rect {
+			minX := int64(math.Floor((111320.7019*areaRect.Left + 0.02068) / unitSize))
+			maxX := int64(math.Floor((111320.7019*areaRect.Right + 0.02068) / unitSize))
+			minY := int64(math.Floor((137651.4674*areaRect.Top - 673284.9677) / unitSize))
+			maxY := int64(math.Floor((137651.4674*areaRect.Bottom - 673284.9677) / unitSize))
+			for xCounter := minX; xCounter <= maxX; xCounter++ {
+				for yCounter := minY; yCounter <= maxY; yCounter++ {
+
+					if len(mapBaiduPropertiesList) >= baidu.Config.configStruct.ProcessListCapacity {
+						baidu.channel <- 0
+						atomic.AddInt64(&aliveThreadCounter, 1)
+
+						go baidu.downloadTiles(mapBaiduPropertiesList, udt)
+
+						mapBaiduPropertiesList = make([]*BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+					}
+
+					mapProperties := &BaiduProperties{zoomCounter, xCounter, yCounter}
+					mapBaiduPropertiesList = append(mapBaiduPropertiesList, mapProperties)
+				}
+			}
+		}
+	}
+	if len(mapBaiduPropertiesList) > 0 {
+		baidu.channel <- 0
+		atomic.AddInt64(&aliveThreadCounter, 1)
+
+		go baidu.downloadTiles(mapBaiduPropertiesList, udt)
+	}
+	for {
+		if atomic.LoadInt64(&aliveThreadCounter) == 0 {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	downloadFlag = false
+	msg = fmt.Sprintf("下载完成，共计%d个文件，%d个文件下载成功。", totalCount, atomic.LoadUint64(&counter))
+	baidu.WebSocket.BroadcastMessage(msg)
+}
+
+// initDownload 定义
+func (baidu *BaiduMapDownloadService) initDownload() {
 	baidu.channel = make(chan int, baidu.Config.configStruct.AllowedThreadCount)
 
 	atomic.StoreUint64(&counter, 0)
 	totalCount = 0
 	atomic.StoreInt64(&aliveThreadCounter, 0)
-	downloadFlag = true
+}
 
+// computeCounter 定义
+func (baidu *BaiduMapDownloadService) computeCounter(areas models.AreasStruct) {
 	for zoomCounter := areas.MinZoomLevel; zoomCounter <= areas.MaxZoomLevel; zoomCounter++ {
 		cV := math.Pow(float64(2), float64(18-zoomCounter))
 		unitSize := cV * 256
@@ -61,64 +124,30 @@ func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
 			}
 		}
 	}
-	msg := fmt.Sprintf("下载开始，共计%d个文件需要下载。", totalCount)
-	baidu.WebSocket.BroadcastMessage(msg)
-
-	go baidu.putProcessingMessage()
-
-	udt := time.Now().Format("20060102")
-	serverID := baidu.Config.configStruct.BaiduMapServer.MinServerNo
-	for zoomCounter := areas.MinZoomLevel; zoomCounter <= areas.MaxZoomLevel; zoomCounter++ {
-		cV := math.Pow(float64(2), float64(18-zoomCounter))
-		unitSize := cV * 256
-		for _, areaRect := range areas.Rect {
-			minX := int64(math.Floor((111320.7019*areaRect.Left + 0.02068) / unitSize))
-			maxX := int64(math.Floor((111320.7019*areaRect.Right + 0.02068) / unitSize))
-			minY := int64(math.Floor((137651.4674*areaRect.Top - 673284.9677) / unitSize))
-			maxY := int64(math.Floor((137651.4674*areaRect.Bottom - 673284.9677) / unitSize))
-			for xCounter := minX; xCounter <= maxX; xCounter++ {
-				for yCounter := minY; yCounter <= maxY; yCounter++ {
-					baidu.channel <- 0
-					atomic.AddInt64(&aliveThreadCounter, 1)
-
-					go baidu.downloadAtile(serverID, xCounter, yCounter, zoomCounter, udt)
-					serverID++
-					if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
-						serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
-					}
-				}
-			}
-		}
-	}
-	for {
-		if atomic.LoadInt64(&aliveThreadCounter) == 0 {
-			break
-		}
-		time.Sleep(3 * time.Second)
-	}
-	downloadFlag = false
-	msg = fmt.Sprintf("下载完成，共计%d个文件，%d个文件下载成功。", totalCount, atomic.LoadUint64(&counter))
-	baidu.WebSocket.BroadcastMessage(msg)
 }
 
-func (baidu *BaiduMapDownloadService) downloadAtile(serverID int, xCounter, yCounter int64, zoomCounter int, udt string) {
-	for {
-		url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapServer.URL, serverID, xCounter, yCounter, zoomCounter, udt)
-		url = strings.Replace(url, "-", "M", 0)
-		raw, err := baidu.getImageFromURL(&url)
-		if err == nil {
-			if baidu.OnBaiduTileDownloaded != nil {
-				baidu.OnBaiduTileDownloaded(raw, xCounter, yCounter, zoomCounter)
+// downloadAtile 定义
+func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt string) {
+	serverID := baidu.Config.configStruct.BaiduMapServer.MinServerNo
+	for _, value := range list {
+		for {
+			url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapServer.URL, serverID, value.x, value.y, value.zoomLevel, udt)
+			url = strings.Replace(url, "-", "M", 0)
+			raw, err := baidu.getImageFromURL(&url)
+			if err == nil {
+				if baidu.OnBaiduTileDownloaded != nil {
+					baidu.OnBaiduTileDownloaded(raw, value.x, value.y, value.zoomLevel)
+				}
+				break
 			}
-			break
+			serverID++
+			if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
+				serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
-		serverID++
-		if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
-			serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
-		}
-		time.Sleep(100 * time.Millisecond)
+		atomic.AddUint64(&counter, 1)
 	}
-	atomic.AddUint64(&counter, 1)
 	<-baidu.channel
 	atomic.AddInt64(&aliveThreadCounter, -1)
 }

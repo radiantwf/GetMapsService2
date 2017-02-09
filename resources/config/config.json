@@ -4,7 +4,8 @@
     "HTMLPath": "./resources/web/home.html",
     "StaticPath": "./resources/web/static",
     "Port": 8000,
-    "AllowedThreadCount": 100,
+    "AllowedThreadCount": 20,
+    "ProcessListCapacity": 1000,
     "BaiduMapServer": {
         "MinServerNo": 0,
         "MaxServerNo": 3,
