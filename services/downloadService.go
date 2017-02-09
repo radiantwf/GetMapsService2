@@ -27,7 +27,7 @@ type DownloadService struct {
 }
 
 // BaiduTileDownloadedHandler 定义
-type BaiduTileDownloadedHandler func(tile []byte, x, y int64, z int) (err error)
+type BaiduTileDownloadedHandler func(tile []byte, x, y int64, z int)
 
 // BaiduMapDownloadService 定义
 type BaiduMapDownloadService struct {
@@ -107,7 +107,9 @@ func (baidu *BaiduMapDownloadService) downloadAtile(serverID int, xCounter, yCou
 		url = strings.Replace(url, "-", "M", 0)
 		raw, err := baidu.getImageFromURL(&url)
 		if err == nil {
-			err = baidu.OnBaiduTileDownloaded(raw, xCounter, yCounter, zoomCounter)
+			if baidu.OnBaiduTileDownloaded != nil {
+				baidu.OnBaiduTileDownloaded(raw, xCounter, yCounter, zoomCounter)
+			}
 			break
 		}
 		serverID++
