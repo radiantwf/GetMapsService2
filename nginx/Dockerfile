@@ -12,5 +12,5 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 ENV TZ=Asia/Shanghai
 
-EXPOSE 6007
-EXPOSE 6008
+EXPOSE 6003
+EXPOSE 6004

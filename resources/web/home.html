@@ -71,6 +71,7 @@
 
 			if (window["WebSocket"]) {
 				conn = new WebSocket("ws://{{$}}/ws");
+				console.log(conn);
 				conn.onclose = function (evt) {
 					appendLog($("<div><b>Connection closed.</b></div>"))
 				}
