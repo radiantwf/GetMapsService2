@@ -130,6 +130,7 @@ func (baidu *BaiduMapDownloadService) computeCounter(areas models.AreasStruct) {
 func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt string) {
 	serverID := baidu.Config.configStruct.BaiduMapServer.MinServerNo
 	for _, value := range list {
+		repeatCounter := 0
 		for {
 			url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapServer.URL, serverID, value.x, value.y, value.zoomLevel, udt)
 			url = strings.Replace(url, "-", "M", 0)
@@ -139,6 +140,11 @@ func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt
 					baidu.OnBaiduTileDownloaded(raw, value.x, value.y, value.zoomLevel)
 				}
 				break
+			}
+			repeatCounter++
+			if repeatCounter%100 == 0 {
+				msg := fmt.Sprintf("文件下载错误，已重试了%d次。下载地址：%s", repeatCounter, url)
+				baidu.WebSocket.BroadcastMessage(msg)
 			}
 			serverID++
 			if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {

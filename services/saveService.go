@@ -18,16 +18,23 @@ type SaveService struct {
 
 // BaiduMapSaveService 定义
 type BaiduMapSaveService struct {
-	Config *ConfigService `inject:""`
+	Config    *ConfigService    `inject:""`
+	WebSocket *WebSocketService `inject:""`
 }
 
 // UploadATile 定义
 func (baidu *BaiduMapSaveService) UploadATile(tile []byte, x, y int64, z int) {
 	url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapFileSystem.URL, z, x, y)
+	repeatCounter := 0
 	for {
 		err := baidu.postTileToURL(url, tile)
 		if err == nil {
 			break
+		}
+		repeatCounter++
+		if repeatCounter%100 == 0 {
+			msg := fmt.Sprintf("文件上传错误，已重试了%d次。上传地址：%s", repeatCounter, url)
+			baidu.WebSocket.BroadcastMessage(msg)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
