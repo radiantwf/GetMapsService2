@@ -1,10 +1,5 @@
 FROM nginx:latest
 
-RUN set -x \
-	&& apt-get update \
-    && apt-get install -y --no-install-recommends \
-    vim
-
 RUN rm -rf /etc/nginx/conf.d/*
 
 COPY server.conf /etc/nginx/conf.d/server.conf

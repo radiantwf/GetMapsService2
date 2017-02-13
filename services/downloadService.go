@@ -148,8 +148,8 @@ func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt
 		}
 		atomic.AddUint64(&counter, 1)
 	}
-	<-baidu.channel
 	atomic.AddInt64(&aliveThreadCounter, -1)
+	<-baidu.channel
 }
 
 // getImageFromURL 定义

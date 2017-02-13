@@ -1,0 +1,144 @@
+{
+    "Version": "1.0.0.0",
+    "UpdateDate": "2016-04-12",
+    "HTMLPath": "./resources/web/home.html",
+    "StaticPath": "./resources/web/static",
+    "Port": 8000,
+    "AllowedThreadCount": 20,
+    "ProcessListCapacity": 1000,
+    "BaiduMapServer": {
+        "MinServerNo": 0,
+        "MaxServerNo": 3,
+        "URL":"http://online%d.map.bdimg.com/onlinelabel/?qt=tile&x=%d&y=%d&z=%d&styles=pl&scaler=1&udt=%s"
+    },
+    "BaiduMapFileSystem": {
+        "URL":"http://filer:8080/%d/%d/%d.png"
+    },
+    "ProvinceInformation": [{
+            "province": "北京",
+            "area": {
+                "longitude": [115.7, 117.4],
+                "latitude": [39.4, 41.6]
+            }
+        },
+        {
+            "province": "天津",
+            "area": {
+                "longitude": [116.7166667, 118.0666667],
+                "latitude": [34.5666667, 40.25]
+            }
+        },
+        {
+            "province": "上海",
+            "area": {
+                "longitude": [120.8666667, 122.2],
+                "latitude": [30.6666667, 31.8833334]
+            }
+        },
+        {
+            "province": "重庆",
+            "area": {
+                "longitude": [105.1833333, 110.1833333],
+                "latitude": [28.1666667, 32.2166667]
+            }
+        },
+        {
+            "province": "四川",
+            "area": {
+                "longitude": [97.35, 108.5166667],
+                "latitude": [26.05, 34.3166667]
+            }
+        },
+        {
+            "province": "云南",
+            "area": {
+                "longitude": [97.5166667, 106.2],
+                "latitude": [21.1333333, 29.25]
+            }
+        },
+        {
+            "province": "贵州",
+            "area": {
+                "longitude": [103.6, 109.5833333],
+                "latitude": [24.6166667, 29.2166667]
+            }
+        },
+        {
+            "province": "广西",
+            "area": {
+                "longitude": [104.4333355, 112.0666667],
+                "latitude": [20.9, 26.4]
+            }
+        },
+        {
+            "province": "西藏",
+            "area": {
+                "longitude": [78.4166667, 99.1],
+                "latitude": [26.7333333, 36.5333333]
+            }
+        },
+        {
+            "province": "广东",
+            "area": {
+                "longitude": [110.12684070095065, 117.42176257595065],
+                "latitude": [21.709834650733526, 25.136665814552174]
+            }
+        },
+        {
+            "province": "安徽",
+            "area": {
+                "longitude": [114.63648838035576, 121.75562900535576],
+                "latitude": [28.02873705852025, 33.372192109071044]
+            }
+        },
+        {
+            "province": "全国",
+            "area": {
+                "longitude": [73.6666681, 135.0416775],
+                "latitude": [3.8666667, 53.5500011]
+            }
+        },
+        {
+            "province": "福建",
+            "area": {
+                "longitude": [116.69359226470941, 119.19847507720941],
+                "latitude": [21.826875648044822, 27.650491723273646]
+            }
+        },
+        {
+            "province": "江西",
+            "area": {
+                "longitude": [114.0, 118.5],
+                "latitude": [24.1, 29.2]
+            }
+        },
+        {
+            "province": "陕西",
+            "area": {
+                "longitude": [105.4, 111.3],
+                "latitude": [31.6, 39.6]
+            }
+        },
+        {
+            "province": "江苏",
+            "area": {
+                "longitude": [116.2, 122.0],
+                "latitude": [30.7, 35.4]
+            }
+        },
+        {
+            "province": "河北",
+            "area": {
+                "longitude": [113.0, 119.9],
+                "latitude": [36.0, 42.7]
+            }
+        },
+        {
+            "province": "广西防城港",
+            "area": {
+                "longitude": [107.3, 108.65],
+                "latitude": [21.45, 22.35]
+            }
+        }
+    ]
+}
