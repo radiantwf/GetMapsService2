@@ -40,3 +40,14 @@ docker run -d --link "seaweedfs-filer1:filer" -p 8000:8000 --name="getmapservice
 docker kill mapserver-nginx;docker rm mapserver-nginx;
 docker rmi 211.157.146.6:5000/mapserver-nginx
 docker run -d -p 6003:6003 -p 6004:6004 --name="mapserver-nginx" 211.157.146.6:5000/mapserver-nginx
+
+
+docker inspect seaweedfs-filer1
+du -h
+
+docker inspect seaweedfs-cassandra
+du -h
+
+docker inspect seaweedfs-redis
+du -h
+
