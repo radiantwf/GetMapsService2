@@ -143,7 +143,7 @@ func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt
 			}
 			repeatCounter++
 			if repeatCounter%100 == 0 {
-				msg := fmt.Sprintf("文件下载错误，已重试了%d次。下载地址：%s", repeatCounter, url)
+				msg := fmt.Sprintf("文件下载错误，已重试了%d次。下载地址：%s\n错误信息：%s", repeatCounter, url, err.Error())
 				baidu.WebSocket.BroadcastMessage(msg)
 			}
 			serverID++

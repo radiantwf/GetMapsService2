@@ -33,7 +33,7 @@ func (baidu *BaiduMapSaveService) UploadATile(tile []byte, x, y int64, z int) {
 		}
 		repeatCounter++
 		if repeatCounter%100 == 0 {
-			msg := fmt.Sprintf("文件上传错误，已重试了%d次。上传地址：%s", repeatCounter, url)
+			msg := fmt.Sprintf("文件上传错误，已重试了%d次。上传地址：%s\n错误信息：%s", repeatCounter, url, err.Error())
 			baidu.WebSocket.BroadcastMessage(msg)
 		}
 		time.Sleep(100 * time.Millisecond)
