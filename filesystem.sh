@@ -43,11 +43,11 @@ docker run -d -p 6003:6003 -p 6004:6004 --name="mapserver-nginx" 211.157.146.6:5
 
 
 docker inspect seaweedfs-filer1
-du -h
 
 docker inspect seaweedfs-cassandra
-du -h
 
 docker inspect seaweedfs-redis
+
+
 du -h
 
