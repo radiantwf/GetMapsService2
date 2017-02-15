@@ -13,7 +13,8 @@ docker kill seaweedfs-cassandra seaweedfs-redis seaweedfs-master1 seaweedfs-volu
 docker rm seaweedfs-cassandra seaweedfs-redis seaweedfs-master1 seaweedfs-volume1 seaweedfs-filer1 getmapservice;
 docker rmi 211.157.146.6:5000/getmapservice
 
-docker run -d --name seaweedfs-cassandra 211.157.146.6:5000/cassandra
+docker run -d -p 9042:9042 --name seaweedfs-cassandra 211.157.146.6:5000/cassandra
+
 docker exec -it seaweedfs-cassandra 'cqlsh'
 create keyspace seaweed WITH replication = {
   'class':'SimpleStrategy',
@@ -27,6 +28,7 @@ CREATE TABLE seaweed_files (
    fids list<varchar>,
    PRIMARY KEY (path)
 );
+exit;
 
 docker run -d -p 9333:9333 --name="seaweedfs-master1" 211.157.146.6:5000/seaweedfs master
 docker run -d -p 8888:8080 --link="seaweedfs-master1:master" --name="seaweedfs-volume1" 211.157.146.6:5000/seaweedfs volume -max=20 -mserver="master:9333" -publicUrl="127.0.0.1:8888" -port=8080
@@ -51,3 +53,7 @@ docker inspect seaweedfs-redis
 
 du -h
 
+weed master
+weed volume -dir="D:\\weed\\data" -max=20 -mserver="127.0.0.1:9333" -publicUrl="192.168.15.206:8880" -port=8880
+weed filer -cassandra.server="172.16.2.25" -master="127.0.0.1:9333" -port=8881
+docker run -d -p 8000:8000 --name="getmapservice" 211.157.146.6:5000/getmapservice
