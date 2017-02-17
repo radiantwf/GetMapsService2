@@ -91,6 +91,8 @@ func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
 		}
 		time.Sleep(3 * time.Second)
 	}
+	baidu.ErrorList.CloseSave()
+
 	msg = fmt.Sprintf("第%d下载完成，共计%d个文件，%d个文件下载成功，%d个文件下载失败。", timesCounter, totalCount, atomic.LoadUint64(&counter), atomic.LoadUint64(&errorCounter))
 	baidu.WebSocket.BroadcastMessage(msg)
 	if errorCounter > 0 {
@@ -170,7 +172,6 @@ func (baidu *BaiduMapDownloadService) downloadTiles(list []models.BaiduPropertie
 		}
 	}
 	baidu.ErrorList.Append(errorList)
-	baidu.ErrorList.CloseSave()
 
 	atomic.AddInt64(&aliveThreadCounter, -1)
 	<-baidu.channel
