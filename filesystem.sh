@@ -55,5 +55,6 @@ du -h
 
 weed master
 weed volume -dir="D:\\weed\\data" -max=20 -mserver="127.0.0.1:9333" -publicUrl="192.168.15.206:8880" -port=8880
-weed filer -cassandra.server="172.16.2.25" -master="127.0.0.1:9333" -port=8881
+weed volume -dir="D:\\weed\\data2" -max=20 -mserver="127.0.0.1:9333" -publicUrl="192.168.15.206:8881" -port=8881
+weed filer -cassandra.server="172.16.2.25" -master="127.0.0.1:9333" -port=8882
 docker run -d -p 8000:8000 --name="getmapservice" 211.157.146.6:5000/getmapservice

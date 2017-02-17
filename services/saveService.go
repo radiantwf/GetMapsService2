@@ -1,6 +1,7 @@
 package services
 
 import (
+	"GetMapsService2/models"
 	"bytes"
 	"errors"
 	"fmt"
@@ -23,18 +24,22 @@ type BaiduMapSaveService struct {
 }
 
 // UploadATile 定义
-func (baidu *BaiduMapSaveService) UploadATile(tile []byte, x, y int64, z int) {
-	url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapFileSystem.URL, z, x, y)
+func (baidu *BaiduMapSaveService) UploadATile(tile []byte, baiduProperties models.BaiduProperties) (err error) {
+	url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapFileSystem.URL, baiduProperties.ZoomLevel, baiduProperties.X, baiduProperties.Y)
 	repeatCounter := 0
 	for {
-		err := baidu.postTileToURL(url, tile)
-		if err == nil {
+		err1 := baidu.postTileToURL(url, tile)
+		if err1 == nil {
 			break
 		}
 		repeatCounter++
 		if repeatCounter%100 == 0 {
 			msg := fmt.Sprintf("文件上传错误，已重试了%d次。上传地址：%s\n错误信息：%s", repeatCounter, url, err.Error())
 			baidu.WebSocket.BroadcastMessage(msg)
+			if repeatCounter%10000 == 0 {
+				err = errors.New(msg)
+				return
+			}
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

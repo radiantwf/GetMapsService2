@@ -13,18 +13,12 @@ import (
 )
 
 var downloadFlag bool
-
+var errorCounter uint64
 var counter uint64
-
 var totalCount uint64
+var timesCounter int
 
 var aliveThreadCounter int64
-
-// BaiduProperties 定义
-type BaiduProperties struct {
-	zoomLevel int
-	x, y      int64
-}
 
 // DownloadService 定义
 type DownloadService struct {
@@ -33,28 +27,32 @@ type DownloadService struct {
 }
 
 // BaiduTileDownloadedHandler 定义
-type BaiduTileDownloadedHandler func(tile []byte, x, y int64, z int)
+type BaiduTileDownloadedHandler func(tile []byte, baiduProperties models.BaiduProperties) (err error)
 
 // BaiduMapDownloadService 定义
 type BaiduMapDownloadService struct {
 	Config                *ConfigService    `inject:""`
 	WebSocket             *WebSocketService `inject:""`
 	OnBaiduTileDownloaded BaiduTileDownloadedHandler
+	ErrorList             *BaiduErrorTileService `inject:""`
 	channel               chan int
+	udt                   string
 }
 
 // DownLoadMaps 定义
 func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
+	timesCounter = 1
+	baidu.ErrorList.InitSave(timesCounter)
 	baidu.initDownload()
-	downloadFlag = true
 	baidu.computeCounter(areas)
 	msg := fmt.Sprintf("下载开始，共计%d个文件需要下载。", totalCount)
 	baidu.WebSocket.BroadcastMessage(msg)
 
+	downloadFlag = true
 	go baidu.putProcessingMessage()
 
-	udt := time.Now().Format("20060102")
-	mapBaiduPropertiesList := make([]*BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+	baidu.udt = time.Now().Format("20060102")
+	mapBaiduPropertiesList := make([]models.BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
 	for zoomCounter := areas.MinZoomLevel; zoomCounter <= areas.MaxZoomLevel; zoomCounter++ {
 		cV := math.Pow(float64(2), float64(18-zoomCounter))
 		unitSize := cV * 256
@@ -70,12 +68,12 @@ func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
 						baidu.channel <- 0
 						atomic.AddInt64(&aliveThreadCounter, 1)
 
-						go baidu.downloadTiles(mapBaiduPropertiesList, udt)
+						go baidu.downloadTiles(mapBaiduPropertiesList, baidu.udt)
 
-						mapBaiduPropertiesList = make([]*BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+						mapBaiduPropertiesList = make([]models.BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
 					}
 
-					mapProperties := &BaiduProperties{zoomCounter, xCounter, yCounter}
+					mapProperties := models.BaiduProperties{ZoomLevel: zoomCounter, X: xCounter, Y: yCounter}
 					mapBaiduPropertiesList = append(mapBaiduPropertiesList, mapProperties)
 				}
 			}
@@ -85,7 +83,7 @@ func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
 		baidu.channel <- 0
 		atomic.AddInt64(&aliveThreadCounter, 1)
 
-		go baidu.downloadTiles(mapBaiduPropertiesList, udt)
+		go baidu.downloadTiles(mapBaiduPropertiesList, baidu.udt)
 	}
 	for {
 		if atomic.LoadInt64(&aliveThreadCounter) == 0 {
@@ -93,9 +91,13 @@ func (baidu *BaiduMapDownloadService) DownLoadMaps(areas models.AreasStruct) {
 		}
 		time.Sleep(3 * time.Second)
 	}
-	downloadFlag = false
-	msg = fmt.Sprintf("下载完成，共计%d个文件，%d个文件下载成功。", totalCount, atomic.LoadUint64(&counter))
+	msg = fmt.Sprintf("第%d下载完成，共计%d个文件，%d个文件下载成功，%d个文件下载失败。", timesCounter, totalCount, atomic.LoadUint64(&counter), atomic.LoadUint64(&errorCounter))
 	baidu.WebSocket.BroadcastMessage(msg)
+	if errorCounter > 0 {
+		baidu.fetchErrorList(errorCounter)
+	}
+
+	downloadFlag = false
 }
 
 // initDownload 定义
@@ -103,6 +105,8 @@ func (baidu *BaiduMapDownloadService) initDownload() {
 	baidu.channel = make(chan int, baidu.Config.configStruct.AllowedThreadCount)
 
 	atomic.StoreUint64(&counter, 0)
+	atomic.StoreUint64(&errorCounter, 0)
+
 	totalCount = 0
 	atomic.StoreInt64(&aliveThreadCounter, 0)
 }
@@ -127,17 +131,28 @@ func (baidu *BaiduMapDownloadService) computeCounter(areas models.AreasStruct) {
 }
 
 // downloadAtile 定义
-func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt string) {
+func (baidu *BaiduMapDownloadService) downloadTiles(list []models.BaiduProperties, udt string) {
 	serverID := baidu.Config.configStruct.BaiduMapServer.MinServerNo
+	errorList := make([]models.BaiduProperties, 0, len(list))
 	for _, value := range list {
 		repeatCounter := 0
 		for {
-			url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapServer.URL, serverID, value.x, value.y, value.zoomLevel, udt)
+			serverID++
+			if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
+				serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
+			}
+			url := fmt.Sprintf(baidu.Config.configStruct.BaiduMapServer.URL, serverID, value.X, value.Y, value.ZoomLevel, udt)
 			url = strings.Replace(url, "-", "M", 0)
 			raw, err := baidu.getImageFromURL(&url)
 			if err == nil {
 				if baidu.OnBaiduTileDownloaded != nil {
-					baidu.OnBaiduTileDownloaded(raw, value.x, value.y, value.zoomLevel)
+					err2 := baidu.OnBaiduTileDownloaded(raw, value)
+					if err2 != nil {
+						atomic.AddUint64(&errorCounter, 1)
+						errorList = append(errorList, value)
+					} else {
+						atomic.AddUint64(&counter, 1)
+					}
 				}
 				break
 			}
@@ -145,17 +160,68 @@ func (baidu *BaiduMapDownloadService) downloadTiles(list []*BaiduProperties, udt
 			if repeatCounter%100 == 0 {
 				msg := fmt.Sprintf("文件下载错误，已重试了%d次。下载地址：%s\n错误信息：%s", repeatCounter, url, err.Error())
 				baidu.WebSocket.BroadcastMessage(msg)
-			}
-			serverID++
-			if serverID > baidu.Config.configStruct.BaiduMapServer.MaxServerNo {
-				serverID = baidu.Config.configStruct.BaiduMapServer.MinServerNo
+				if repeatCounter%10000 == 0 {
+					atomic.AddUint64(&errorCounter, 1)
+					errorList = append(errorList, value)
+					break
+				}
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
-		atomic.AddUint64(&counter, 1)
 	}
+	baidu.ErrorList.Append(errorList)
+	baidu.ErrorList.CloseSave()
+
 	atomic.AddInt64(&aliveThreadCounter, -1)
 	<-baidu.channel
+}
+
+func (baidu *BaiduMapDownloadService) fetchErrorList(total uint64) {
+	baidu.initDownload()
+	atomic.StoreUint64(&totalCount, total)
+	baiduPropertiesList := make([]models.BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+	baidu.ErrorList.InitLoad(timesCounter)
+	timesCounter++
+	baidu.ErrorList.InitSave(timesCounter)
+	for {
+		lines := baidu.ErrorList.ReadLine()
+		if lines == nil {
+			break
+		}
+		for _, value := range lines {
+			if len(baiduPropertiesList) >= baidu.Config.configStruct.ProcessListCapacity {
+				baidu.channel <- 0
+				atomic.AddInt64(&aliveThreadCounter, 1)
+
+				go baidu.downloadTiles(baiduPropertiesList, baidu.udt)
+
+				baiduPropertiesList = make([]models.BaiduProperties, 0, baidu.Config.configStruct.ProcessListCapacity)
+			}
+			baiduProperties := value
+			baiduPropertiesList = append(baiduPropertiesList, baiduProperties)
+		}
+	}
+
+	if len(baiduPropertiesList) > 0 {
+		baidu.channel <- 0
+		atomic.AddInt64(&aliveThreadCounter, 1)
+
+		go baidu.downloadTiles(baiduPropertiesList, baidu.udt)
+	}
+	for {
+		if atomic.LoadInt64(&aliveThreadCounter) == 0 {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
+	baidu.ErrorList.CloseRead()
+	baidu.ErrorList.CloseSave()
+
+	msg := fmt.Sprintf("第%d下载完成，共计%d个文件，%d个文件下载成功，%d个文件下载失败。", timesCounter, totalCount, atomic.LoadUint64(&counter), atomic.LoadUint64(&errorCounter))
+	baidu.WebSocket.BroadcastMessage(msg)
+	if errorCounter > 0 {
+		baidu.fetchErrorList(errorCounter)
+	}
 }
 
 // getImageFromURL 定义
@@ -196,7 +262,8 @@ func (baidu *BaiduMapDownloadService) putProcessingMessage() {
 			break
 		}
 		if counter > 0 {
-			msg := fmt.Sprintf("%d个文件下载完成，共计%d个文件。", atomic.LoadUint64(&counter), totalCount)
+			msg := fmt.Sprintf("正在进行第%d轮下载，%d个文件下载成功，共计%d个文件，%d个文件下载失败。", timesCounter, atomic.LoadUint64(&counter), atomic.LoadUint64(&totalCount), atomic.LoadUint64(&errorCounter))
+
 			baidu.WebSocket.BroadcastMessage(msg)
 			time.Sleep(3 * time.Second)
 		} else {
